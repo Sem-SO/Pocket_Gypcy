@@ -1,8 +1,8 @@
-import json
 import requests
 import pandas as pd
+import matplotlib.pyplot as plt
 
-shit_url = 'https://api.finra.org/data/group/OTCMarket/name/regShoDaily'
+fin_url = 'https://api.finra.org/data/group/OTCMarket/name/regShoDaily'
 
 obj = {
     "fields": [
@@ -52,15 +52,32 @@ def to_data_type(data_frame):  # Приведение к необходимым 
     return data_frame
 
 
+def graph_construct(data):
+    x = data['tradeReportDate']
+    y1 = data['shortParQuantity']
+    y2 = data['totalParQuantity']
+    plt.title('Какой-то график')  # Название графика
+    plt.xlabel('tradeReportDate')  # Название оси Х
+    plt.xticks(rotation=90)  # Поворот значений оси Х вертикально
+    plt.ylabel('shortParQuantity, totalParQuantity')  # Название оси У
+    plt.plot(x, y1, x, y2)
+    plt.show()
+
+
 def main():
-    data = get_list(request_data(shit_url, obj))
+    data = get_list(request_data(fin_url, obj))
     df = pd.DataFrame(data, columns=data[0])
     df.drop([0], axis='index', inplace=True)  # Удаление первой записи, так как она дублирует названия полей
     df = to_data_type(df)  # Приведение к необходимым типам данных
-    # print(df)
-    # print(df.info())
 
-    print(df.groupby(['tradeReportDate']).sum()[['shortParQuantity', 'totalParQuantity']])  # SQL запрос
+    sql_query = df.groupby(['tradeReportDate']).sum()[['shortParQuantity', 'totalParQuantity']]  # SQL запрос
+    sql_query = sql_query.rename_axis(
+        'tradeReportDate').reset_index()  # Перевод индексов в столбец, т.к. .groupby() делает столбец индексами
+
+    print(sql_query)
+
+    """Построение графика"""
+    graph_construct(sql_query)
 
 
 if __name__ == '__main__':

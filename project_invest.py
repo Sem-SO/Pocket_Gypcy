@@ -1,6 +1,9 @@
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QApplication, QMainWindow
+import sys
 
 fin_url = 'https://api.finra.org/data/group/OTCMarket/name/regShoDaily'
 
@@ -41,6 +44,12 @@ def get_list(data):  # Получение вложенного списка (п�
     return s
 
 
+def table_create(data):
+    df = pd.DataFrame(data, columns=data[0])
+    df = df.drop([0], axis='index')  # Удаление первой записи, так как она дублирует названия полей (пришлось удалить inplace=True)
+    return df
+
+
 def to_data_type(data_frame):  # Приведение к необходимым типам данных
 
     int_type_columns = ['shortParQuantity', 'shortExemptParQuantity', 'totalParQuantity']
@@ -58,7 +67,7 @@ def graph_construct(data):
     y2 = data['totalParQuantity']
     plt.title('Какой-то график')  # Название графика
     plt.xlabel('tradeReportDate')  # Название оси Х
-    plt.xticks(rotation=90)  # Поворот значений оси Х вертикально
+    plt.xticks(rotation=50)  # Поворот значений оси Х вертикально
     plt.ylabel('shortParQuantity, totalParQuantity')  # Название оси У
     plt.plot(x, y1, x, y2)
     plt.show()
@@ -66,9 +75,8 @@ def graph_construct(data):
 
 def main():
     data = get_list(request_data(fin_url, obj))
-    df = pd.DataFrame(data, columns=data[0])
-    df.drop([0], axis='index', inplace=True)  # Удаление первой записи, так как она дублирует названия полей
-    df = to_data_type(df)  # Приведение к необходимым типам данных
+    data_frame = table_create(data)  # Создание DataFrame
+    df = to_data_type(data_frame)  # Приведение полей к необходимым типам данных
 
     sql_query = df.groupby(['tradeReportDate']).sum()[['shortParQuantity', 'totalParQuantity']]  # SQL запрос
     sql_query = sql_query.rename_axis(
@@ -76,8 +84,9 @@ def main():
 
     print(sql_query)
 
-    """Построение графика"""
-    graph_construct(sql_query)
+    '''Построение графика'''
+    graph = graph_construct(sql_query)
+    print(type(graph))
 
 
 if __name__ == '__main__':
